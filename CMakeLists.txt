@@ -10,6 +10,7 @@ endif()
 
 project(task LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_FLAGS "-Wno-attributes")
 
 find_package(Boost 1.59 COMPONENTS coroutine REQUIRED)
 find_package(Boost 1.59 COMPONENTS stacktrace_basic)
