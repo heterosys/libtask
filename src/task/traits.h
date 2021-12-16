@@ -1,5 +1,5 @@
-#ifndef task_SYNTHESIZABLE_TRAITS_H_
-#define task_SYNTHESIZABLE_TRAITS_H_
+#ifndef TASK_SYNTHESIZABLE_TRAITS_H_
+#define TASK_SYNTHESIZABLE_TRAITS_H_
 
 #include "task/stream.h"
 
@@ -17,7 +17,7 @@ template <typename T, uint64_t S> struct elem_type<ostreams<T, S> &> {
 
 } // namespace task
 
-#define task_ELEM_TYPE(variable)                                               \
+#define TASK_ELEM_TYPE(variable)                                               \
   typename ::task::elem_type<decltype(variable)>::type
 
-#endif // task_SYNTHESIZABLE_TRAITS_H_
+#endif // TASK_SYNTHESIZABLE_TRAITS_H_

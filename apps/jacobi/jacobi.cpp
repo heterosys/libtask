@@ -30,7 +30,7 @@ void Module0Func(task::ostream<float> &fifo_st_0,
                  task::ostream<float> &fifo_st_1,
                  task::istream<task::vec_t<float, 2>> &dram_t1_bank_0_fifo) {
 module_0_epoch:
-  TASK_WHILE_NOT_EOT(dram_t1_bank_0_fifo) {
+  while (!dram_t1_bank_0_fifo.eot()) {
     auto dram_t1_bank_0_buf = dram_t1_bank_0_fifo.read(nullptr);
     fifo_st_0.write(dram_t1_bank_0_buf[1]);
     fifo_st_1.write(dram_t1_bank_0_buf[0]);
@@ -43,7 +43,7 @@ void Module1Func(task::ostream<float> &fifo_st_0,
                  task::ostream<float> &fifo_st_1,
                  task::istream<float> &fifo_ld_0) {
 module_1_epoch:
-  TASK_WHILE_NOT_EOT(fifo_ld_0) {
+  while (!fifo_ld_0.eot()) {
     auto fifo_ref_0 = fifo_ld_0.read(nullptr);
     fifo_st_0.write(fifo_ref_0);
     fifo_st_1.write(fifo_ref_0);
@@ -58,7 +58,7 @@ void Module3Func1(task::ostream<float> &fifo_st_0,
   const int delay_0 = 50;
   int count = 0;
 module_3_1_epoch:
-  TASK_WHILE_NEITHER_EOT(fifo_ld_0, fifo_ld_1) {
+  while (!fifo_ld_0.eot() && !fifo_ld_1.eot()) {
     float fifo_ref_0 = 0.f;
     bool do_ld_0 = count >= delay_0;
     if (do_ld_0) {
@@ -79,7 +79,7 @@ void Module3Func2(task::ostream<float> &fifo_st_0,
   const int delay_0 = 51;
   int count = 0;
 module_3_2_epoch:
-  TASK_WHILE_NEITHER_EOT(fifo_ld_0, fifo_ld_1) {
+  while (!fifo_ld_0.eot() && !fifo_ld_1.eot()) {
     float fifo_ref_0 = 0.f;
     bool do_ld_0 = count >= delay_0;
     if (do_ld_0) {
@@ -102,7 +102,7 @@ void Module6Func1(task::ostream<float> &fifo_st_0,
   const int delay_2 = 50;
   int count = 0;
 module_6_1_epoch:
-  TASK_WHILE_NONE_EOT(fifo_ld_0, fifo_ld_1, fifo_ld_2) {
+  while (!fifo_ld_0.eot() && !fifo_ld_1.eot() && !fifo_ld_2.eot()) {
     float fifo_ref_0 = 0.f;
     bool do_ld_0 = count >= delay_0;
     if (do_ld_0) {
@@ -129,7 +129,7 @@ void Module6Func2(task::ostream<float> &fifo_st_0,
   const int delay_2 = 50;
   int count = 0;
 module_6_2_epoch:
-  TASK_WHILE_NONE_EOT(fifo_ld_0, fifo_ld_1, fifo_ld_2) {
+  while (!fifo_ld_0.eot() && !fifo_ld_1.eot() && !fifo_ld_2.eot()) {
     float fifo_ref_0 = 0.f;
     bool do_ld_0 = count >= delay_0;
     if (do_ld_0) {
@@ -153,7 +153,7 @@ void Module8Func(task::ostream<task::vec_t<float, 2>> &dram_t0_bank_0_fifo,
                  task::istream<float> &fifo_ld_0,
                  task::istream<float> &fifo_ld_1) {
 module_8_epoch:
-  TASK_WHILE_NEITHER_EOT(fifo_ld_0, fifo_ld_1) {
+  while (!fifo_ld_0.eot() && !fifo_ld_1.eot()) {
     task::vec_t<float, 2> tmp;
     tmp.set(0, fifo_ld_0.read(nullptr));
     tmp.set(1, fifo_ld_1.read(nullptr));

@@ -75,7 +75,7 @@ void ProcElem(task::istream<float> &a_fifo, task::istream<float> &b_fifo,
     for (uint64_t i = 0; i < kN / p; ++i) {
       for (uint64_t j = 0; j < kN / p; ++j) {
         float tmp = std::kill_dependency(c[i * (kN / p) + j]);
-        [[unroll]] for (uint64_t k = 0; k < kN / p; ++k) {
+        [[task::unroll]] for (uint64_t k = 0; k < kN / p; ++k) {
           tmp += a[i * (kN / p) + k] * b[k * (kN / p) + j];
         }
         c[i * (kN / p) + j] = tmp;

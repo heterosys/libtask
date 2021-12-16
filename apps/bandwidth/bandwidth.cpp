@@ -13,7 +13,7 @@ void Copy(task::async_mmap<Elem> mem, uint64_t n, uint64_t flags) {
     return;
 
   uint16_t mask = 0xffffu;
-  [[unroll]] for (int i = 16; i > 0; --i) {
+  [[task::unroll]] for (int i = 16; i > 0; --i) {
     if (n < (1ULL << i)) {
       mask >>= 1;
     }

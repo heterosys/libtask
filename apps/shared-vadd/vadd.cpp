@@ -9,7 +9,9 @@ using task::parallel;
 using task::stream;
 
 void Add(istream<float> &a, istream<float> &b, ostream<float> &c) {
-  TASK_WHILE_NEITHER_EOT(a, b) { c.write(a.read(nullptr) + b.read(nullptr)); }
+  while (!a.eot() && !b.eot()) {
+    c.write(a.read(nullptr) + b.read(nullptr));
+  }
   c.close();
 }
 

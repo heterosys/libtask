@@ -15,8 +15,7 @@ constexpr int kN = 8; // kN x kN network
 void Switch2x2(int b, istream<pkt_t> &pkt_in_q0, istream<pkt_t> &pkt_in_q1,
                ostreams<pkt_t, 2> &pkt_out_q) {
   uint8_t priority = 0;
-  for (bool valid_0, valid_1;;) {
-#pragma HLS latency max = 0
+  [[task::latency(0, 0)]] for (bool valid_0, valid_1;;) {
     auto pkt_0 = pkt_in_q0.peek(valid_0);
     auto pkt_1 = pkt_in_q1.peek(valid_1);
     bool fwd_0_0 = valid_0 && (pkt_0 & (1 << b)) == 0;
@@ -70,7 +69,7 @@ void Produce(mmap<vec_t<pkt_t, kN>> mmap_in, uint64_t n,
 produce:
   for (uint64_t i = 0; i < n; ++i) {
     auto buf = mmap_in[i];
-    [[unroll]] for (int j = 0; j < kN; ++j) { out_q[j].write(buf[j]); }
+    [[task::unroll]] for (int j = 0; j < kN; ++j) { out_q[j].write(buf[j]); }
   }
 }
 
@@ -79,7 +78,7 @@ void Consume(mmap<vec_t<pkt_t, kN>> mmap_out, uint64_t n,
 consume:
   for (uint64_t i = 0; i < n; ++i) {
     vec_t<pkt_t, kN> buf;
-    [[unroll]] for (int j = 0; j < kN; ++j) {
+    [[task::unroll]] for (int j = 0; j < kN; ++j) {
       buf.set(j, in_q[j].read());
       CHECK_EQ(buf[j] % kN, j);
     }

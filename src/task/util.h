@@ -1,5 +1,5 @@
-#ifndef task_UTIL_H_
-#define task_UTIL_H_
+#ifndef TASK_UTIL_H_
+#define TASK_UTIL_H_
 
 #include <climits>
 
@@ -57,17 +57,9 @@ template <uint64_t N> inline constexpr uint64_t round_up(uint64_t i) {
 template <typename To, typename From>
 inline typename std::enable_if<sizeof(To) == sizeof(From), To>::type //
 bit_cast(From from) noexcept {
-#pragma HLS inline
   To to;
   std::memcpy(&to, &from, sizeof(To));
   return to;
-}
-
-template <typename T> T reg(T x) {
-#pragma HLS inline off
-#pragma HLS pipeline II = 1
-#pragma HLS latency min = 1 max = 1
-  return x;
 }
 
 template <typename Addr, typename Payload> struct packet {
@@ -83,25 +75,4 @@ inline std::ostream &operator<<(std::ostream &os,
 
 } // namespace task
 
-#define TASK_WHILE_NOT_EOT(fifo)                                               \
-  for (bool task_##fifo##_valid;                                               \
-       !fifo.eot(task_##fifo##_valid) || !task_##fifo##_valid;)                \
-  _Pragma("HLS pipeline II = 1") if (task_##fifo##_valid)
-
-#define TASK_WHILE_NEITHER_EOT(fifo1, fifo2)                                   \
-  for (bool task_##fifo1##_valid, task_##fifo2##_valid;                        \
-       (!fifo1.eot(task_##fifo1##_valid) || !task_##fifo1##_valid) &&          \
-       (!fifo2.eot(task_##fifo2##_valid) || !task_##fifo2##_valid);)           \
-  _Pragma("HLS pipeline II = 1") if (task_##fifo1##_valid &&                   \
-                                     task_##fifo2##_valid)
-
-#define TASK_WHILE_NONE_EOT(fifo1, fifo2, fifo3)                               \
-  for (bool task_##fifo1##_valid, task_##fifo2##_valid, task_##fifo3##_valid;  \
-       (!fifo1.eot(task_##fifo1##_valid) || !task_##fifo1##_valid) &&          \
-       (!fifo2.eot(task_##fifo2##_valid) || !task_##fifo2##_valid) &&          \
-       (!fifo3.eot(task_##fifo3##_valid) || !task_##fifo3##_valid);)           \
-  _Pragma("HLS pipeline II = 1") if (task_##fifo1##_valid &&                   \
-                                     task_##fifo2##_valid &&                   \
-                                     task_##fifo3##_valid)
-
-#endif // task_UTIL_H_
+#endif // TASK_UTIL_H_

@@ -244,7 +244,7 @@ void UpdateHandler(Pid num_partitions,
 
   // Initialization; needed only once per execution.
   int update_offset_idx = 0;
-  TASK_WHILE_NOT_EOT(update_config_q) {
+  while (!update_config_q.eot()) {
     auto config = update_config_q.read(nullptr);
     VLOG(5) << "recv@UpdateHandler: UpdateConfig: " << config;
     switch (config.item) {
@@ -261,14 +261,14 @@ void UpdateHandler(Pid num_partitions,
     }
   }
 
-  TASK_WHILE_NOT_EOT(update_req_q) {
+  while (!update_req_q.eot()) {
     // Each UpdateReq either requests forwarding all Updates from ProcElem to
     // the memory (scatter phase), or requests forwarding all Updates from the
     // memory to ProcElem (gather phase).
     const auto update_req = update_req_q.read();
     VLOG(5) << "recv@UpdateHandler: UpdateReq: " << update_req;
     if (update_req.phase == TaskReq::kScatter) {
-      TASK_WHILE_NOT_EOT(update_in_q) {
+      while (!update_in_q.eot()) {
         Update update = update_in_q.read(nullptr);
         VLOG(5) << "recv@UpdateHandler: Update: " << update;
         Pid pid = (update.dst - base_vid) / partition_size;
@@ -312,7 +312,7 @@ void ProcElem(task::istream<TaskReq> &req_q, task::ostream<TaskResp> &resp_q,
   update_out_q.close();
 
   VertexAttr vertices_local[kMaxPartitionSize];
-  TASK_WHILE_NOT_EOT(req_q) {
+  while (!req_q.eot()) {
     const TaskReq req = req_q.read();
     VLOG(5) << "recv@ProcElem: TaskReq: " << req;
     update_req_q.write({req.phase, req.pid});
@@ -331,7 +331,7 @@ void ProcElem(task::istream<TaskReq> &req_q, task::ostream<TaskResp> &resp_q,
       }
       update_out_q.close();
     } else {
-      TASK_WHILE_NOT_EOT(update_in_q) {
+      while (!update_in_q.eot()) {
         auto update = update_in_q.read(nullptr);
         VLOG(5) << "recv@ProcElem: Update: " << update;
         auto idx = update.dst - req.base_vid;

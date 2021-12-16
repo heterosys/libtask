@@ -1,5 +1,5 @@
-#ifndef task_VEC_H_
-#define task_VEC_H_
+#ifndef TASK_VEC_H_
+#define TASK_VEC_H_
 
 #include <climits>
 #include <cmath>
@@ -343,4 +343,4 @@ inline std::ostream &operator<<(std::ostream &os, const vec_t<T, N> &obj) {
 
 } // namespace task
 
-#endif // task_VEC_H_
+#endif // TASK_VEC_H_

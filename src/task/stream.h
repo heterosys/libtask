@@ -1,5 +1,5 @@
-#ifndef task_STREAM_H_
-#define task_STREAM_H_
+#ifndef TASK_STREAM_H_
+#define TASK_STREAM_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -53,8 +53,7 @@ protected:
   void check_leftover() {
     if (!this->empty()) {
       LOG(WARNING) << "channel '" << this->name
-                   << "' destructed with leftovers; hardware behavior may be "
-                      "unexpected in consecutive invocations";
+                   << "' destructed with leftovers";
     }
   }
 };
@@ -135,11 +134,11 @@ public:
 };
 
 template <typename T>
-#ifdef task_USE_LOCKED_QUEUE
+#ifdef TASK_USE_LOCKED_QUEUE
 using queue = locked_queue<T>;
-#else  // task_USE_LOCKED_QUEUE
+#else  // TASK_USE_LOCKED_QUEUE
 using queue = lock_free_queue<T>;
-#endif // task_USE_LOCKED_QUEUE
+#endif // TASK_USE_LOCKED_QUEUE
 
 // shared pointer of a queue
 template <typename T> class basic_stream {
@@ -222,6 +221,18 @@ public:
       return true;
     }
     return false;
+  }
+
+  /// Tests whether the next token is EoT.
+  ///
+  /// This is a @a blocking and @a non-destructive operation.
+  ///
+  /// @return Whether the next token is EoT.
+  bool eot() {
+    bool eot = false;
+    while (!try_eot(eot)) {
+    }
+    return eot;
   }
 
   /// Tests whether the next token is EoT.
@@ -766,7 +777,7 @@ template <typename T, uint64_t S, uint64_t N> using channels = streams<T, S, N>;
 
 namespace internal {
 
-#define task_DEFINE_ACCESSER(io, reference)                                    \
+#define TASK_DEFINE_ACCESSER(io, reference)                                    \
   /* param = i/ostream, arg = streams */                                       \
   template <typename T, uint64_t length, uint64_t depth>                       \
   struct accessor<io##stream<T> reference, streams<T, length, depth> &> {      \
@@ -804,14 +815,17 @@ namespace internal {
     }                                                                          \
   };
 
-task_DEFINE_ACCESSER(i, ) task_DEFINE_ACCESSER(i, &) task_DEFINE_ACCESSER(i, &&)
-    task_DEFINE_ACCESSER(o, ) task_DEFINE_ACCESSER(o, &)
-        task_DEFINE_ACCESSER(o, &&)
+TASK_DEFINE_ACCESSER(i, )
+TASK_DEFINE_ACCESSER(i, &)
+TASK_DEFINE_ACCESSER(i, &&)
+TASK_DEFINE_ACCESSER(o, )
+TASK_DEFINE_ACCESSER(o, &)
+TASK_DEFINE_ACCESSER(o, &&)
 
-#undef task_DEFINE_ACCESSER
+#undef TASK_DEFINE_ACCESSER
 
 } // namespace internal
 
 } // namespace task
 
-#endif // task_STREAM_H_
+#endif // TASK_STREAM_H_
