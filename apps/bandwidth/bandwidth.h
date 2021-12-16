@@ -1,6 +1,6 @@
-#include <tapa.h>
+#include <task.h>
 
-using Elem = tapa::vec_t<float, 16>;
+using Elem = task::vec_t<float, 16>;
 constexpr int kBankCount = 4;
 constexpr int kEstimatedLatency = 50;
 

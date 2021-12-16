@@ -1,62 +1,53 @@
-cmake_minimum_required(VERSION 3.14)
-cmake_policy(SET CMP0076 NEW)
+cmake_minimum_required(VERSION 3.10)
+
+if(POLICY CMP0076)
+  cmake_policy(SET CMP0076 NEW)
+endif()
+
 if(POLICY CMP0111)
   cmake_policy(SET CMP0111 NEW)
 endif()
 
-project(tapa)
+project(task LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 14)
 
-add_subdirectory(backend)
+find_package(Boost 1.59 COMPONENTS coroutine REQUIRED)
+find_package(Boost 1.59 COMPONENTS stacktrace_basic)
 
-find_package(Boost 1.59 COMPONENTS coroutine stacktrace_basic)
-find_package(FRT REQUIRED)
-
-add_library(tapa_static STATIC)
-add_library(tapa ALIAS tapa_static)
-add_library(tapa_shared SHARED)
-target_sources(tapa_static PRIVATE src/tapa.cpp)
-target_sources(tapa_shared PRIVATE src/tapa.cpp)
-target_compile_features(tapa_static PUBLIC cxx_std_11)
-target_compile_features(tapa_shared PUBLIC cxx_std_11)
+set(TASK_SOURCE src/task.cpp)
+add_library(task_objects OBJECT ${TASK_SOURCE})
+set_property(TARGET task_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_include_directories(
-  tapa_static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
-target_include_directories(
-  tapa_shared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
-target_link_libraries(
-  tapa_static
-  INTERFACE frt::frt
-  PUBLIC glog pthread)
-target_link_libraries(
-  tapa_shared
-  INTERFACE frt::frt
-  PUBLIC glog pthread)
-set_target_properties(tapa_static tapa_shared
-                      PROPERTIES OUTPUT_NAME tapa POSITION_INDEPENDENT_CODE ON)
+  task_objects PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
 
-if(Boost_COROUTINE_FOUND)
-  message(STATUS "Building TAPA with coroutine")
-  target_compile_definitions(tapa_static PRIVATE TAPA_ENABLE_COROUTINE=1)
-  target_compile_definitions(tapa_shared PRIVATE TAPA_ENABLE_COROUTINE=1)
-  target_link_libraries(
-    tapa_static PRIVATE Boost::boost ${Boost_COROUTINE_LIBRARY}
-                        ${Boost_CONTEXT_LIBRARY})
-  target_link_libraries(
-    tapa_shared PRIVATE Boost::boost ${Boost_COROUTINE_LIBRARY}
-                        ${Boost_CONTEXT_LIBRARY})
+add_library(task_static STATIC $<TARGET_OBJECTS:task_objects>)
+add_library(task_shared SHARED $<TARGET_OBJECTS:task_objects>)
+add_library(task ALIAS task_static)
+set(TASK_LINK_LIBRARIES
+  glog pthread Boost::boost
+  ${Boost_COROUTINE_LIBRARY} ${Boost_CONTEXT_LIBRARY})
+target_link_libraries(
+  task_static PRIVATE ${TASK_LINK_LIBRARIES})
+target_include_directories(
+  task_static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
+target_link_libraries(
+  task_shared PRIVATE ${TASK_LINK_LIBRARIES})
+target_include_directories(
+  task_shared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
+
   list(APPEND CPACK_DEBIAN_PACKAGE_DEPENDS
        "libboost-coroutine-dev(>=${Boost_VERSION_STRING})")
   list(APPEND CPACK_RPM_PACKAGE_REQUIRES
        "boost${Boost_VERSION_MAJOR}${Boost_VERSION_MINOR}-coroutine")
-endif()
 
 if(Boost_STACKTRACE_BASIC_FOUND)
-  message(STATUS "Building TAPA with stacktrace")
-  target_compile_definitions(tapa_static PRIVATE TAPA_ENABLE_STACKTRACE=1)
-  target_compile_definitions(tapa_shared PRIVATE TAPA_ENABLE_STACKTRACE=1)
+  message(STATUS "Building libtask with stacktrace")
+  target_compile_definitions(task_static PRIVATE TASK_ENABLE_STACKTRACE=1)
+  target_compile_definitions(task_shared PRIVATE TASK_ENABLE_STACKTRACE=1)
   target_link_libraries(
-    tapa_static PRIVATE Boost::boost ${Boost_STACKTRACE_BASIC_LIBRARY} dl)
+    task_static PRIVATE Boost::boost ${Boost_STACKTRACE_BASIC_LIBRARY} dl)
   target_link_libraries(
-    tapa_shared PRIVATE Boost::boost ${Boost_STACKTRACE_BASIC_LIBRARY} dl)
+    task_shared PRIVATE Boost::boost ${Boost_STACKTRACE_BASIC_LIBRARY} dl)
   list(APPEND CPACK_DEBIAN_PACKAGE_DEPENDS
        "libboost-stacktrace-dev(>=${Boost_VERSION_STRING})")
   list(APPEND CPACK_RPM_PACKAGE_REQUIRES
@@ -65,84 +56,68 @@ endif()
 
 include(GNUInstallDirs)
 install(
-  TARGETS tapa_static tapa_shared
-  EXPORT TAPATargets
+  TARGETS task_static task_shared
+  EXPORT TaskTargets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(TARGETS tapacc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(
   DIRECTORY "${CMAKE_SOURCE_DIR}/src/"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   FILES_MATCHING
   PATTERN "*.h")
 
-set_target_properties(tapa_static PROPERTIES EXPORT_NAME tapa)
+set_target_properties(task_static PROPERTIES EXPORT_NAME task)
 export(
-  EXPORT TAPATargets
-  NAMESPACE tapa::
-  FILE ${CMAKE_CURRENT_BINARY_DIR}/tapa/TAPATargets.cmake)
-set(ConfigPackageLocation lib/cmake/tapa)
+  EXPORT TaskTargets
+  NAMESPACE task::
+  FILE ${CMAKE_CURRENT_BINARY_DIR}/task/TaskTargets.cmake)
 install(
-  EXPORT TAPATargets
-  FILE TAPATargets.cmake
-  NAMESPACE tapa::
-  DESTINATION ${ConfigPackageLocation})
-install(
-  FILES cmake/TAPAConfig.cmake cmake/TAPACCConfig.cmake
-  DESTINATION ${ConfigPackageLocation}
-  COMPONENT Devel)
+  EXPORT TaskTargets
+  FILE TaskTargets.cmake
+  NAMESPACE task::
+  DESTINATION lib/cmake/task)
 
-set(CPACK_PACKAGE_NAME tapa)
-set(CPACK_PACKAGE_VERSION_MAJOR 0)
-set(CPACK_PACKAGE_VERSION_MINOR 0)
-set(CPACK_PACKAGE_VERSION_PATCH 20211016.1)
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Task-Parallel High-Level Synthesis")
+if(NOT DEFINED CPACK_PACKAGE_VERSION_MAJOR)
+  set(CPACK_PACKAGE_VERSION_MAJOR 0)
+endif()
+if(NOT DEFINED CPACK_PACKAGE_VERSION_MINOR)
+  set(CPACK_PACKAGE_VERSION_MINOR 0)
+endif()
+if(NOT DEFINED CPACK_PACKAGE_VERSION_PATCH)
+  set(CPACK_PACKAGE_VERSION_PATCH git)
+endif()
+if(NOT DEFINED PACKAGE_VERSION)
+  set(PACKAGE_VERSION
+    "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
+endif()
+
+set(CPACK_PACKAGE_NAME libtask)
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "C++ task-parallel library")
+set(CPACK_PACKAGE_VERSION ${PACKAGE_VERSION})
 
 list(
   APPEND
   CPACK_DEBIAN_PACKAGE_DEPENDS
-  "g++" # required by tapac for dependence analysis
-  "iverilog" # required by tapac for RTL instrumentation
-  "libfrt-dev" # required by libtapa for host-kernel interface
-  "libgoogle-glog-dev" # required by libtapa for logging messages
+  "libgoogle-glog-dev" # required by libtask for logging messages
+  "libboost-coroutine-dev(>=${Boost_VERSION_STRING})"
 )
 list(SORT CPACK_DEBIAN_PACKAGE_DEPENDS)
 list(JOIN CPACK_DEBIAN_PACKAGE_DEPENDS ", " CPACK_DEBIAN_PACKAGE_DEPENDS)
-
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Blaok Chi")
-set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
-set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
-
 list(
   APPEND
   CPACK_RPM_PACKAGE_REQUIRES
-  "frt-devel" # required by libtapa for host-kernel interface
-  "gcc-c++" # required by tapac for dependence analysis
-  "glog-devel" # required by libtapa for logging messages
-  "iverilog" # required by tapac for RTL instrumentation
+  "glog-devel" # required by libtask for logging messages
 )
 list(SORT CPACK_RPM_PACKAGE_REQUIRES)
 list(JOIN CPACK_RPM_PACKAGE_REQUIRES ", " CPACK_RPM_PACKAGE_REQUIRES)
 
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Jason Lau")
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
 
-set(CPACK_GENERATOR
-    TGZ DEB
-    CACHE STRING "Enable selected CPack generators")
+set(CPACK_GENERATOR DEB)
 include(CPack)
 
-option(BUILD_DOCS "Build documentations" OFF)
-if(BUILD_DOCS)
-  add_subdirectory(docs)
-endif()
-
-include(cmake/TAPACCConfig.cmake)
 enable_testing()
-add_subdirectory(apps/bandwidth)
-add_subdirectory(apps/cannon)
-add_subdirectory(apps/graph)
-add_subdirectory(apps/jacobi)
-add_subdirectory(apps/nested-vadd)
-add_subdirectory(apps/network)
-add_subdirectory(apps/shared-vadd)
-add_subdirectory(apps/vadd)
+add_subdirectory(apps)

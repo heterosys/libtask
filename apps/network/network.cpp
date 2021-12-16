@@ -1,22 +1,21 @@
-#include <tapa.h>
+#include <task.h>
 
-using tapa::detach;
-using tapa::istream;
-using tapa::istreams;
-using tapa::mmap;
-using tapa::ostream;
-using tapa::ostreams;
-using tapa::streams;
-using tapa::task;
-using tapa::vec_t;
+using task::detach;
+using task::istream;
+using task::istreams;
+using task::mmap;
+using task::ostream;
+using task::ostreams;
+using task::streams;
+using task::vec_t;
 
 using pkt_t = uint64_t;
-constexpr int kN = 8;  // kN x kN network
+constexpr int kN = 8; // kN x kN network
 
-void Switch2x2(int b, istream<pkt_t>& pkt_in_q0, istream<pkt_t>& pkt_in_q1,
-               ostreams<pkt_t, 2>& pkt_out_q) {
+void Switch2x2(int b, istream<pkt_t> &pkt_in_q0, istream<pkt_t> &pkt_in_q1,
+               ostreams<pkt_t, 2> &pkt_out_q) {
   uint8_t priority = 0;
-  [[tapa::pipeline(1)]] for (bool valid_0, valid_1;;) {
+  for (bool valid_0, valid_1;;) {
 #pragma HLS latency max = 0
     auto pkt_0 = pkt_in_q0.peek(valid_0);
     auto pkt_1 = pkt_in_q1.peek(valid_1);
@@ -52,36 +51,35 @@ void Switch2x2(int b, istream<pkt_t>& pkt_in_q0, istream<pkt_t>& pkt_in_q1,
       pkt_in_q1.read(nullptr);
     }
 
-    if (conflict) ++priority;
+    if (conflict)
+      ++priority;
   }
 }
 
-void InnerStage(int b, istreams<pkt_t, kN / 2>& in_q0,
-                istreams<pkt_t, kN / 2>& in_q1, ostreams<pkt_t, kN> out_q) {
-  task().invoke<detach, kN / 2>(Switch2x2, b, in_q0, in_q1, out_q);
+void InnerStage(int b, istreams<pkt_t, kN / 2> &in_q0,
+                istreams<pkt_t, kN / 2> &in_q1, ostreams<pkt_t, kN> out_q) {
+  task::task().invoke<detach, kN / 2>(Switch2x2, b, in_q0, in_q1, out_q);
 }
 
-void Stage(int b, istreams<pkt_t, kN>& in_q, ostreams<pkt_t, kN> out_q) {
-  task().invoke<detach>(InnerStage, b, in_q, in_q, out_q);
+void Stage(int b, istreams<pkt_t, kN> &in_q, ostreams<pkt_t, kN> out_q) {
+  task::task().invoke<detach>(InnerStage, b, in_q, in_q, out_q);
 }
 
 void Produce(mmap<vec_t<pkt_t, kN>> mmap_in, uint64_t n,
-             ostreams<pkt_t, kN>& out_q) {
+             ostreams<pkt_t, kN> &out_q) {
 produce:
-  [[tapa::pipeline(1)]] for (uint64_t i = 0; i < n; ++i) {
+  for (uint64_t i = 0; i < n; ++i) {
     auto buf = mmap_in[i];
-    for (int j = 0; j < kN; ++j) {
-      out_q[j].write(buf[j]);
-    }
+    [[unroll]] for (int j = 0; j < kN; ++j) { out_q[j].write(buf[j]); }
   }
 }
 
 void Consume(mmap<vec_t<pkt_t, kN>> mmap_out, uint64_t n,
              istreams<pkt_t, kN> in_q) {
 consume:
-  [[tapa::pipeline(1)]] for (uint64_t i = 0; i < n; ++i) {
+  for (uint64_t i = 0; i < n; ++i) {
     vec_t<pkt_t, kN> buf;
-    for (int j = 0; j < kN; ++j) {
+    [[unroll]] for (int j = 0; j < kN; ++j) {
       buf.set(j, in_q[j].read());
       CHECK_EQ(buf[j] % kN, j);
     }
@@ -96,7 +94,7 @@ void Network(mmap<vec_t<pkt_t, kN>> mmap_in, mmap<vec_t<pkt_t, kN>> mmap_out,
   streams<pkt_t, kN, 4096> q2("q2");
   streams<pkt_t, kN, 4096> q3("q3");
 
-  task()
+  task::task()
       .invoke(Produce, mmap_in, n, q0)
       .invoke(Stage, 2, q0, q1)
       .invoke(Stage, 1, q1, q2)

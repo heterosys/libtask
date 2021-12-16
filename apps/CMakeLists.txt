@@ -1,0 +1,8 @@
+add_subdirectory(bandwidth)
+add_subdirectory(cannon)
+add_subdirectory(graph)
+add_subdirectory(jacobi)
+add_subdirectory(nested-vadd)
+add_subdirectory(network)
+add_subdirectory(shared-vadd)
+add_subdirectory(vadd)

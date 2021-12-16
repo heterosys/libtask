@@ -20,23 +20,21 @@
 
 namespace nxgraph {
 
-template <typename Vid, typename EdgeAttr = std::nullptr_t>
-struct Edge {
+template <typename Vid, typename EdgeAttr = std::nullptr_t> struct Edge {
   Vid src;
   Vid dst;
   EdgeAttr attr;
-  void LoadAttr(const char* ptr, const char** next_ptr) {
+  void LoadAttr(const char *ptr, const char **next_ptr) {
     if (next_ptr != nullptr) {
       *next_ptr = ptr;
     }
   }
 };
 
-template <typename Vid>
-struct Edge<Vid, std::nullptr_t> {
+template <typename Vid> struct Edge<Vid, std::nullptr_t> {
   Vid src;
   Vid dst;
-  void LoadAttr(const char* ptr, const char** next_ptr) {
+  void LoadAttr(const char *ptr, const char **next_ptr) {
     if (next_ptr != nullptr) {
       *next_ptr = ptr;
     }
@@ -49,15 +47,15 @@ struct Partition {
   Vid base_vid;
   Vid num_vertices;
   Eid num_edges;
-  std::unique_ptr<EdgeType, std::function<void(EdgeType*)>> shard;
+  std::unique_ptr<EdgeType, std::function<void(EdgeType *)>> shard;
 };
 
 // Processes text between begin_ptr and end_ptr and return the edge array as a
 // unique_ptr. If max_vid or min_vid is not nullptr, it will be updated.
 template <typename Vid, typename EdgeAttr = std::nullptr_t>
-inline std::vector<Edge<Vid, EdgeAttr>> ProcessEdgeList(
-    const char* begin_ptr, const char* end_ptr, Vid* max_vid = nullptr,
-    Vid* min_vid = nullptr) {
+inline std::vector<Edge<Vid, EdgeAttr>>
+ProcessEdgeList(const char *begin_ptr, const char *end_ptr,
+                Vid *max_vid = nullptr, Vid *min_vid = nullptr) {
   using std::nullptr_t;
   using std::numeric_limits;
   using std::string;
@@ -71,9 +69,9 @@ inline std::vector<Edge<Vid, EdgeAttr>> ProcessEdgeList(
   if (min_vid != nullptr) {
     *min_vid = numeric_limits<Vid>::max();
   }
-  const char* next_pos = nullptr;
+  const char *next_pos = nullptr;
   vector<EdgeType> edges;
-  for (const char* ptr = begin_ptr; ptr < end_ptr; ++ptr) {
+  for (const char *ptr = begin_ptr; ptr < end_ptr; ++ptr) {
     // Skip spaces and tabs.
     for (; isblank(*ptr); ++ptr) {
       if (ptr >= end_ptr) {
@@ -99,7 +97,7 @@ inline std::vector<Edge<Vid, EdgeAttr>> ProcessEdgeList(
     }
 
     /// Swallows empty lines.
-    const Vid src = strtoull(ptr, const_cast<char**>(&next_pos), 10);
+    const Vid src = strtoull(ptr, const_cast<char **>(&next_pos), 10);
     if (next_pos == ptr) {
       break;
     }
@@ -111,7 +109,7 @@ inline std::vector<Edge<Vid, EdgeAttr>> ProcessEdgeList(
       }
     }
 
-    const Vid dst = strtoull(next_pos, const_cast<char**>(&ptr), 10);
+    const Vid dst = strtoull(next_pos, const_cast<char **>(&ptr), 10);
     if (next_pos == ptr) {
       break;
     }
@@ -141,8 +139,8 @@ inline std::vector<Edge<Vid, EdgeAttr>> ProcessEdgeList(
 
 template <typename Vid, typename Eid, typename VertexAttr,
           typename EdgeAttr = std::nullptr_t>
-std::vector<Partition<Vid, Eid, VertexAttr, EdgeAttr>> LoadEdgeList(
-    const std::string& filename, Vid partition_size) {
+std::vector<Partition<Vid, Eid, VertexAttr, EdgeAttr>>
+LoadEdgeList(const std::string &filename, Vid partition_size) {
   using std::runtime_error;
   using PartitionType = Partition<Vid, Eid, VertexAttr, EdgeAttr>;
   using EdgeType = Edge<Vid, EdgeAttr>;
@@ -158,7 +156,7 @@ std::vector<Partition<Vid, Eid, VertexAttr, EdgeAttr>> LoadEdgeList(
   }
 
   const size_t mmap_length = sb.st_size;
-  auto mmap_ptr = reinterpret_cast<char*>(
+  auto mmap_ptr = reinterpret_cast<char *>(
       mmap(nullptr, mmap_length, PROT_READ, MAP_SHARED, fd, /*offset=*/0));
   if (mmap_ptr == MAP_FAILED) {
     throw runtime_error("failed to mmap " + filename);
@@ -173,11 +171,11 @@ std::vector<Partition<Vid, Eid, VertexAttr, EdgeAttr>> LoadEdgeList(
           << " num vertices: " << num_vertices;
 
   const size_t num_partitions = (num_vertices - 1) / partition_size + 1;
-  std::vector<std::vector<EdgeType>*> shards(num_partitions);
-  for (auto& shard : shards) {
+  std::vector<std::vector<EdgeType> *> shards(num_partitions);
+  for (auto &shard : shards) {
     shard = new std::vector<EdgeType>;
   }
-  for (const auto& edge : edges) {
+  for (const auto &edge : edges) {
     VLOG(10) << "src: " << edge.src << " dst: " << edge.dst;
     const size_t pid = (edge.src - min_vid) % num_partitions;
     auto map = [&](Vid vid) -> Vid {
@@ -195,7 +193,7 @@ std::vector<Partition<Vid, Eid, VertexAttr, EdgeAttr>> LoadEdgeList(
     Vid base_vid = min_vid + partition_size * i;
     auto shard = shards[i];
     auto shard_ptr = shards[i]->data();
-    auto shard_deleter = [shard](EdgeType*) { delete shard; };
+    auto shard_deleter = [shard](EdgeType *) { delete shard; };
     partitions.push_back({base_vid,
                           Vid(partition_size),
                           Eid(shards[i]->size()),
@@ -213,4 +211,4 @@ std::vector<Partition<Vid, Eid, VertexAttr, EdgeAttr>> LoadEdgeList(
   return partitions;
 }
 
-}  // namespace nxgraph
+} // namespace nxgraph

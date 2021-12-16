@@ -1,19 +1,19 @@
 #include <cstdint>
 
-#include <tapa.h>
+#include <task.h>
 
 #include "bandwidth.h"
 
-void Copy(tapa::async_mmap<Elem> mem, uint64_t n, uint64_t flags) {
+void Copy(task::async_mmap<Elem> mem, uint64_t n, uint64_t flags) {
   const bool random = flags & kRandom;
   const bool read = flags & kRead;
   const bool write = flags & kWrite;
 
-  if (!read && !write) return;
+  if (!read && !write)
+    return;
 
   uint16_t mask = 0xffffu;
-  for (int i = 16; i > 0; --i) {
-#pragma HLS unroll
+  [[unroll]] for (int i = 16; i > 0; --i) {
     if (n < (1ULL << i)) {
       mask >>= 1;
     }
@@ -26,7 +26,6 @@ void Copy(tapa::async_mmap<Elem> mem, uint64_t n, uint64_t flags) {
   bool data_ready = false;
   Elem elem;
 
-  [[tapa::pipeline(1)]]
   for (uint64_t i_rd_req = 0, i_rd_resp = 0, i_wr_req = 0, i_wr_resp = 0;
        write ? (i_wr_resp < n) : (i_rd_resp < n);) {
 
@@ -70,6 +69,6 @@ void Copy(tapa::async_mmap<Elem> mem, uint64_t n, uint64_t flags) {
   }
 }
 
-void Bandwidth(tapa::mmaps<Elem, kBankCount> chan, uint64_t n, uint64_t flags) {
-  tapa::task().invoke<tapa::join, kBankCount>(Copy, chan, n, flags);
+void Bandwidth(task::mmaps<Elem, kBankCount> chan, uint64_t n, uint64_t flags) {
+  task::task().invoke<task::join, kBankCount>(Copy, chan, n, flags);
 }

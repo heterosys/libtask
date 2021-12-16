@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include <tapa.h>
+#include <task.h>
 
 using Vid = uint32_t;
 using Eid = uint32_t;
@@ -31,11 +31,11 @@ struct TaskReq {
   Eid eid_offset;
 };
 
-ostream& operator<<(ostream& os, const TaskReq::Phase& obj) {
+ostream &operator<<(ostream &os, const TaskReq::Phase &obj) {
   return os << (obj == TaskReq::kScatter ? "SCATTER" : "GATHER");
 }
 
-ostream& operator<<(ostream& os, const TaskReq& obj) {
+ostream &operator<<(ostream &os, const TaskReq &obj) {
   return os << "{phase: " << obj.phase << ", pid: " << obj.pid
             << ", base_vid: " << obj.base_vid
             << ", num_vertices: " << obj.num_vertices
@@ -50,7 +50,7 @@ struct TaskResp {
   bool active;
 };
 
-ostream& operator<<(ostream& os, const TaskResp& obj) {
+ostream &operator<<(ostream &os, const TaskResp &obj) {
   return os << "{phase: " << obj.phase << ", pid: " << obj.pid
             << ", active: " << obj.active << "}";
 }
@@ -60,7 +60,7 @@ struct Update {
   Vid value;
 };
 
-ostream& operator<<(ostream& os, const Update& obj) {
+ostream &operator<<(ostream &os, const Update &obj) {
   return os << "{dst: " << obj.dst << ", value: " << obj.value << "}";
 }
 
@@ -71,31 +71,31 @@ struct UpdateConfig {
   Eid eid;
 };
 
-ostream& operator<<(ostream& os, const UpdateConfig::Item& obj) {
+ostream &operator<<(ostream &os, const UpdateConfig::Item &obj) {
   switch (obj) {
-    case UpdateConfig::kBaseVid:
-      os << "BASE_VID";
-      break;
-    case UpdateConfig::kPartitionSize:
-      os << "PARTITION_SIZE";
-      break;
-    case UpdateConfig::kUpdateOffset:
-      os << "UPDATE_OFFSET";
-      break;
+  case UpdateConfig::kBaseVid:
+    os << "BASE_VID";
+    break;
+  case UpdateConfig::kPartitionSize:
+    os << "PARTITION_SIZE";
+    break;
+  case UpdateConfig::kUpdateOffset:
+    os << "UPDATE_OFFSET";
+    break;
   }
   return os;
 }
 
-ostream& operator<<(ostream& os, const UpdateConfig& obj) {
+ostream &operator<<(ostream &os, const UpdateConfig &obj) {
   os << "{item: " << obj.item;
   switch (obj.item) {
-    case UpdateConfig::kBaseVid:
-    case UpdateConfig::kPartitionSize:
-      os << ", vid: " << obj.vid;
-      break;
-    case UpdateConfig::kUpdateOffset:
-      os << ", eid: " << obj.eid;
-      break;
+  case UpdateConfig::kBaseVid:
+  case UpdateConfig::kPartitionSize:
+    os << ", vid: " << obj.vid;
+    break;
+  case UpdateConfig::kUpdateOffset:
+    os << ", eid: " << obj.eid;
+    break;
   }
   return os << "}";
 }
@@ -105,17 +105,17 @@ struct UpdateReq {
   Pid pid;
 };
 
-ostream& operator<<(ostream& os, const UpdateReq& obj) {
+ostream &operator<<(ostream &os, const UpdateReq &obj) {
   return os << "{phase: " << obj.phase << ", pid: " << obj.pid << "}";
 }
 
 const int kMaxNumPartitions = 1024;
 const int kMaxPartitionSize = 1024 * 1024;
 
-void Control(Pid num_partitions, tapa::mmap<const Vid> num_vertices,
-             tapa::mmap<const Eid> num_edges,
-             tapa::ostream<UpdateConfig>& update_config_q,
-             tapa::ostream<TaskReq>& req_q, tapa::istream<TaskResp>& resp_q) {
+void Control(Pid num_partitions, task::mmap<const Vid> num_vertices,
+             task::mmap<const Eid> num_edges,
+             task::ostream<UpdateConfig> &update_config_q,
+             task::ostream<TaskReq> &req_q, task::istream<TaskResp> &resp_q) {
   // Keeps track of all partitions.
 
   // Vid of the 0-th vertex in each partition.
@@ -133,7 +133,7 @@ void Control(Pid num_partitions, tapa::mmap<const Vid> num_vertices,
   Vid vid_offset_acc = 0;
   Eid eid_offset_acc = 0;
   bool done[kMaxNumPartitions] = {};
-  [[tapa::pipeline(1)]] for (Pid pid = 0; pid < num_partitions; ++pid) {
+  [[task::pipeline(1)]] for (Pid pid = 0; pid < num_partitions; ++pid) {
     Vid num_vertices_delta = num_vertices[pid + 1];
     Eid num_edges_delta = num_edges[pid];
 
@@ -221,16 +221,16 @@ void Control(Pid num_partitions, tapa::mmap<const Vid> num_vertices,
 }
 
 void UpdateHandler(Pid num_partitions,
-                   tapa::istream<UpdateConfig>& update_config_q,
-                   tapa::istream<UpdateReq>& update_req_q,
-                   tapa::istream<Update>& update_in_q,
-                   tapa::ostream<Update>& update_out_q,
-                   tapa::mmap<Update> updates) {
+                   task::istream<UpdateConfig> &update_config_q,
+                   task::istream<UpdateReq> &update_req_q,
+                   task::istream<Update> &update_in_q,
+                   task::ostream<Update> &update_out_q,
+                   task::mmap<Update> updates) {
   // HLS crashes without this...
   update_out_q.close();
 #ifdef __SYNTHESIS__
   ap_wait();
-#endif  // __SYNTEHSIS__
+#endif // __SYNTEHSIS__
   update_in_q.open();
 
   // Base vid of all vertices; used to determine dst partition id.
@@ -244,31 +244,31 @@ void UpdateHandler(Pid num_partitions,
 
   // Initialization; needed only once per execution.
   int update_offset_idx = 0;
-  TAPA_WHILE_NOT_EOT(update_config_q) {
+  TASK_WHILE_NOT_EOT(update_config_q) {
     auto config = update_config_q.read(nullptr);
     VLOG(5) << "recv@UpdateHandler: UpdateConfig: " << config;
     switch (config.item) {
-      case UpdateConfig::kBaseVid:
-        base_vid = config.vid;
-        break;
-      case UpdateConfig::kPartitionSize:
-        partition_size = config.vid;
-        break;
-      case UpdateConfig::kUpdateOffset:
-        update_offsets[update_offset_idx] = config.eid;
-        ++update_offset_idx;
-        break;
+    case UpdateConfig::kBaseVid:
+      base_vid = config.vid;
+      break;
+    case UpdateConfig::kPartitionSize:
+      partition_size = config.vid;
+      break;
+    case UpdateConfig::kUpdateOffset:
+      update_offsets[update_offset_idx] = config.eid;
+      ++update_offset_idx;
+      break;
     }
   }
 
-  TAPA_WHILE_NOT_EOT(update_req_q) {
+  TASK_WHILE_NOT_EOT(update_req_q) {
     // Each UpdateReq either requests forwarding all Updates from ProcElem to
     // the memory (scatter phase), or requests forwarding all Updates from the
     // memory to ProcElem (gather phase).
     const auto update_req = update_req_q.read();
     VLOG(5) << "recv@UpdateHandler: UpdateReq: " << update_req;
     if (update_req.phase == TaskReq::kScatter) {
-      TAPA_WHILE_NOT_EOT(update_in_q) {
+      TASK_WHILE_NOT_EOT(update_in_q) {
         Update update = update_in_q.read(nullptr);
         VLOG(5) << "recv@UpdateHandler: Update: " << update;
         Pid pid = (update.dst - base_vid) / partition_size;
@@ -292,27 +292,27 @@ void UpdateHandler(Pid num_partitions,
                 << " Update: " << updates[update_offset];
         update_out_q.write(updates[update_offset]);
       }
-      num_updates[pid] = 0;  // Reset for the next scatter phase.
+      num_updates[pid] = 0; // Reset for the next scatter phase.
       update_out_q.close();
     }
   }
   VLOG(3) << "info@UpdateHandler: done";
 }
 
-void ProcElem(tapa::istream<TaskReq>& req_q, tapa::ostream<TaskResp>& resp_q,
-              tapa::ostream<UpdateReq>& update_req_q,
-              tapa::istream<Update>& update_in_q,
-              tapa::ostream<Update>& update_out_q,
-              tapa::mmap<VertexAttr> vertices, tapa::mmap<const Edge> edges) {
+void ProcElem(task::istream<TaskReq> &req_q, task::ostream<TaskResp> &resp_q,
+              task::ostream<UpdateReq> &update_req_q,
+              task::istream<Update> &update_in_q,
+              task::ostream<Update> &update_out_q,
+              task::mmap<VertexAttr> vertices, task::mmap<const Edge> edges) {
   // HLS crashes without this...
   update_in_q.open();
 #ifdef __SYNTHESIS__
   ap_wait();
-#endif  // __SYNTEHSIS__
+#endif // __SYNTEHSIS__
   update_out_q.close();
 
   VertexAttr vertices_local[kMaxPartitionSize];
-  TAPA_WHILE_NOT_EOT(req_q) {
+  TASK_WHILE_NOT_EOT(req_q) {
     const TaskReq req = req_q.read();
     VLOG(5) << "recv@ProcElem: TaskReq: " << req;
     update_req_q.write({req.phase, req.pid});
@@ -331,12 +331,11 @@ void ProcElem(tapa::istream<TaskReq>& req_q, tapa::ostream<TaskResp>& resp_q,
       }
       update_out_q.close();
     } else {
-      TAPA_WHILE_NOT_EOT(update_in_q) {
-#pragma HLS dependence false variable = vertices_local
+      TASK_WHILE_NOT_EOT(update_in_q) {
         auto update = update_in_q.read(nullptr);
         VLOG(5) << "recv@ProcElem: Update: " << update;
         auto idx = update.dst - req.base_vid;
-        auto old_vertex_value = vertices_local[idx];
+        auto old_vertex_value = std::kill_dependency(vertices_local[idx]);
         if (update.value < old_vertex_value) {
           vertices_local[idx] = update.value;
           active = true;
@@ -354,23 +353,21 @@ void ProcElem(tapa::istream<TaskReq>& req_q, tapa::ostream<TaskResp>& resp_q,
   update_req_q.close();
 }
 
-void Graph(Pid num_partitions, tapa::mmap<const Vid> num_vertices,
-           tapa::mmap<const Eid> num_edges, tapa::mmap<VertexAttr> vertices,
-           tapa::mmap<const Edge> edges, tapa::mmap<Update> updates) {
-  tapa::stream<TaskReq, kMaxNumPartitions> task_req("task_req");
-  tapa::stream<TaskResp, 32> task_resp("task_resp");
-  tapa::stream<Update, 32> update_pe2handler("update_pe2handler");
-  tapa::stream<Update, 32> update_handler2pe("update_handler2pe");
-  tapa::stream<UpdateConfig, 32> update_config("update_config");
-  tapa::stream<UpdateReq, 32> update_req("update_req");
+void Graph(Pid num_partitions, task::mmap<const Vid> num_vertices,
+           task::mmap<const Eid> num_edges, task::mmap<VertexAttr> vertices,
+           task::mmap<const Edge> edges, task::mmap<Update> updates) {
+  task::stream<TaskReq, kMaxNumPartitions> task_req("task_req");
+  task::stream<TaskResp, 32> task_resp("task_resp");
+  task::stream<Update, 32> update_pe2handler("update_pe2handler");
+  task::stream<Update, 32> update_handler2pe("update_handler2pe");
+  task::stream<UpdateConfig, 32> update_config("update_config");
+  task::stream<UpdateReq, 32> update_req("update_req");
 
-  tapa::task()
-      .invoke(Control, num_partitions, num_vertices, num_edges,
-              update_config, task_req, task_resp)
-      .invoke(UpdateHandler, num_partitions, update_config,
-              update_req, update_pe2handler, update_handler2pe,
-              updates)
-      .invoke(ProcElem, task_req, task_resp, update_req,
-              update_handler2pe, update_pe2handler, vertices,
-              edges);
+  task::task()
+      .invoke(Control, num_partitions, num_vertices, num_edges, update_config,
+              task_req, task_resp)
+      .invoke(UpdateHandler, num_partitions, update_config, update_req,
+              update_pe2handler, update_handler2pe, updates)
+      .invoke(ProcElem, task_req, task_resp, update_req, update_handler2pe,
+              update_pe2handler, vertices, edges);
 }
