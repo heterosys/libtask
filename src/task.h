@@ -38,10 +38,10 @@ template <typename T> struct invoker;
 
 template <typename... Params> struct invoker<void (&)(Params...)> {
   template <typename... Args>
-  static void invoke(int mode, void (&f)(Params...), Args &&...args) {
+  static void invoke(mode m, void (&f)(Params...), Args &&...args) {
     // std::bind creates a copy of args
-    internal::schedule(mode, std::bind(f, accessor<Params, Args>::access(
-                                              std::forward<Args>(args))...));
+    internal::schedule(m, std::bind(f, accessor<Params, Args>::access(
+                                           std::forward<Args>(args))...));
   }
 };
 
@@ -78,15 +78,15 @@ struct parallel {
   /// instances with the given instatiation mode.
   ///
   /// @tparam n    Instatiation count.
-  /// @tparam mode Instatiation mode (@c join or @c detach).
+  /// @tparam m    Instatiation mode (@c join or @c detach).
   /// @param func  Task function definition of the instantiated child.
   /// @param args  Arguments passed to @c func.
   /// @return      Reference to the caller @c task::parallel.
-  template <int n = 1, int mode = join, typename Func, typename... Args>
+  template <int n = 1, mode m = join, typename Func, typename... Args>
   parallel &invoke(Func &&func, Args &&...args) {
     for (int i = 0; i < n; ++i) {
       internal::invoker<Func>::template invoke<Args...>(
-          mode, std::forward<Func>(func), std::forward<Args>(args)...);
+          m, std::forward<Func>(func), std::forward<Args>(args)...);
     }
     return *this;
   }

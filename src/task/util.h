@@ -9,9 +9,6 @@
 
 namespace task {
 
-constexpr int join = 0;
-constexpr int detach = -1;
-
 namespace internal {
 
 template <typename T, int width = T::width> inline constexpr int widthof(int) {

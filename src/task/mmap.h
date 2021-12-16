@@ -242,7 +242,7 @@ public:
   static async_mmap schedule(super mem) {
     // a copy of async_mem is stored in std::function<void()>
     async_mmap async_mem(mem);
-    internal::schedule(/*detach=*/true, async_mem);
+    internal::schedule(detach, async_mem);
     return async_mem;
   }
 };

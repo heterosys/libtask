@@ -102,12 +102,12 @@ rlim_t get_stack_size() {
 class worker {
   // dict mapping mode to list of coroutine
   // list is used because the stable pointer can be used as key in handle_table
-  unordered_map<int, std::list<push_type>> coroutines;
+  unordered_map<mode, std::list<push_type>> coroutines;
 
   // dict mapping coroutine to handle
   unordered_map<push_type *, pull_type *> handle_table;
 
-  std::queue<std::tuple<int, function<void()>>> tasks;
+  std::queue<std::tuple<mode, function<void()>>> tasks;
   mutex mtx;
   condition_variable task_cv;
   condition_variable wait_cv;
@@ -134,12 +134,12 @@ public:
 
           // create coroutines
           while (!this->tasks.empty()) {
-            int mode;
+            mode m;
             function<void()> f;
-            std::tie(mode, f) = this->tasks.front();
+            std::tie(m, f) = this->tasks.front();
             this->tasks.pop();
 
-            auto &l = this->coroutines[mode]; // list of coroutines
+            auto &l = this->coroutines[m]; // list of coroutines
             auto coroutine = new push_type *;
             auto call_back = [this, &l, f, coroutine](pull_type &handle) {
               this->handle_table[*coroutine] = current_handle = &handle;
@@ -157,7 +157,7 @@ public:
         if (debugging)
           debug = true;
         for (auto &pair : this->coroutines) {
-          bool mode = pair.first;
+          mode m = pair.first;
           auto &coroutines = pair.second;
           for (auto it = coroutines.begin(); it != coroutines.end();) {
             if (auto &coroutine = *it) {
@@ -166,7 +166,7 @@ public:
             }
 
             if (*it) {
-              if (mode != detach)
+              if (m != detach)
                 active = true;
               ++it;
             } else {
@@ -186,10 +186,10 @@ public:
     });
   }
 
-  void add_task(int mode, const function<void()> &f) {
+  void add_task(mode m, const function<void()> &f) {
     {
       unique_lock lock(this->mtx);
-      this->tasks.emplace(mode, f);
+      this->tasks.emplace(m, f);
     }
     this->task_cv.notify_one();
   }
@@ -197,7 +197,7 @@ public:
   void wait() {
     unique_lock lock(this->mtx);
     this->wait_cv.wait(lock, [this] {
-      return this->tasks.empty() && this->coroutines[false].empty();
+      return this->tasks.empty() && this->coroutines[join].empty();
     });
   }
 
@@ -241,9 +241,9 @@ public:
     }
   }
 
-  void add_task(int mode, const function<void()> &f) {
+  void add_task(mode m, const function<void()> &f) {
     unique_lock lock(this->worker_mtx);
-    it->add_task(mode, f);
+    it->add_task(m, f);
     ++it;
     if (it == this->workers.end())
       it = this->workers.begin();
@@ -296,7 +296,7 @@ void signal_handler(int signal) {
 
 } // namespace
 
-void schedule(int mode, const function<void()> &f) { pool->add_task(mode, f); }
+void schedule(mode m, const function<void()> &f) { pool->add_task(m, f); }
 
 } // namespace internal
 
