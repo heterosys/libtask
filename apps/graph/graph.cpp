@@ -363,7 +363,7 @@ void Graph(Pid num_partitions, task::mmap<const Vid> num_vertices,
   task::stream<UpdateConfig, 32> update_config("update_config");
   task::stream<UpdateReq, 32> update_req("update_req");
 
-  task::task()
+  task::parallel()
       .invoke(Control, num_partitions, num_vertices, num_edges, update_config,
               task_req, task_resp)
       .invoke(UpdateHandler, num_partitions, update_config, update_req,

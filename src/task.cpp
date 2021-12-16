@@ -67,7 +67,7 @@ void yield(const string &msg) {
       if (line == 0 || file == __FILE__ ||
           // Ignore STL functions.
           starts_with(name, "void std::") || starts_with(name, "std::") ||
-          // Ignore TASK channel functions.
+          // Ignore libtask channel functions.
           ends_with(file, "/task/mmap.h") ||
           ends_with(file, "/task/stream.h")) {
         continue;
@@ -100,14 +100,14 @@ rlim_t get_stack_size() {
 }
 
 class worker {
-  // dict mapping detach to list of coroutine
+  // dict mapping mode to list of coroutine
   // list is used because the stable pointer can be used as key in handle_table
-  unordered_map<bool, std::list<push_type>> coroutines;
+  unordered_map<int, std::list<push_type>> coroutines;
 
   // dict mapping coroutine to handle
   unordered_map<push_type *, pull_type *> handle_table;
 
-  std::queue<std::tuple<bool, function<void()>>> tasks;
+  std::queue<std::tuple<int, function<void()>>> tasks;
   mutex mtx;
   condition_variable task_cv;
   condition_variable wait_cv;
@@ -134,12 +134,12 @@ public:
 
           // create coroutines
           while (!this->tasks.empty()) {
-            bool detach;
+            int mode;
             function<void()> f;
-            std::tie(detach, f) = this->tasks.front();
+            std::tie(mode, f) = this->tasks.front();
             this->tasks.pop();
 
-            auto &l = this->coroutines[detach]; // list of coroutines
+            auto &l = this->coroutines[mode]; // list of coroutines
             auto coroutine = new push_type *;
             auto call_back = [this, &l, f, coroutine](pull_type &handle) {
               this->handle_table[*coroutine] = current_handle = &handle;
@@ -157,7 +157,7 @@ public:
         if (debugging)
           debug = true;
         for (auto &pair : this->coroutines) {
-          bool detach = pair.first;
+          bool mode = pair.first;
           auto &coroutines = pair.second;
           for (auto it = coroutines.begin(); it != coroutines.end();) {
             if (auto &coroutine = *it) {
@@ -166,7 +166,7 @@ public:
             }
 
             if (*it) {
-              if (!detach)
+              if (mode != detach)
                 active = true;
               ++it;
             } else {
@@ -186,10 +186,10 @@ public:
     });
   }
 
-  void add_task(bool detach, const function<void()> &f) {
+  void add_task(int mode, const function<void()> &f) {
     {
       unique_lock lock(this->mtx);
-      this->tasks.emplace(detach, f);
+      this->tasks.emplace(mode, f);
     }
     this->task_cv.notify_one();
   }
@@ -241,9 +241,9 @@ public:
     }
   }
 
-  void add_task(bool detach, const function<void()> &f) {
+  void add_task(int mode, const function<void()> &f) {
     unique_lock lock(this->worker_mtx);
-    it->add_task(detach, f);
+    it->add_task(mode, f);
     ++it;
     if (it == this->workers.end())
       it = this->workers.begin();
@@ -266,7 +266,7 @@ public:
 };
 
 thread_pool *pool = nullptr;
-const task *top_task = nullptr;
+const parallel *top_task = nullptr;
 mutex mtx;
 
 // How the signal handler works:
@@ -296,13 +296,11 @@ void signal_handler(int signal) {
 
 } // namespace
 
-void schedule(bool detach, const function<void()> &f) {
-  pool->add_task(detach, f);
-}
+void schedule(int mode, const function<void()> &f) { pool->add_task(mode, f); }
 
 } // namespace internal
 
-task::task() {
+parallel::parallel() {
   unique_lock lock(internal::mtx);
   if (internal::pool == nullptr) {
     internal::pool = new internal::thread_pool;
@@ -310,7 +308,7 @@ task::task() {
   }
 }
 
-task::~task() {
+parallel::~parallel() {
   if (this == internal::top_task) {
     internal::pool->wait();
     unique_lock lock(internal::mtx);
@@ -319,22 +317,4 @@ task::~task() {
   }
 }
 
-} // namespace task
-
-namespace task {
-namespace internal {
-
-void *allocate(size_t length) {
-  void *addr = ::mmap(nullptr, length, PROT_READ | PROT_WRITE,
-                      MAP_SHARED | MAP_ANONYMOUS, /*fd=*/-1, /*offset=*/0);
-  if (addr == MAP_FAILED)
-    throw std::bad_alloc();
-  return addr;
-}
-void deallocate(void *addr, size_t length) {
-  if (::munmap(addr, length) != 0)
-    throw std::bad_alloc();
-}
-
-} // namespace internal
 } // namespace task

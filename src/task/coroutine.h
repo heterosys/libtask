@@ -6,7 +6,7 @@
 
 namespace task {
 namespace internal {
-void schedule(bool detach, const std::function<void()> &);
+void schedule(int mode, const std::function<void()> &);
 void yield(const std::string &msg);
 } // namespace internal
 } // namespace task

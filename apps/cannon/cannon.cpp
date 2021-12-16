@@ -127,7 +127,7 @@ void Cannon(task::mmap<const float> a_vec, task::mmap<const float> b_vec,
   task::stream<float, 8> fifo_01_11("PE01->PE11");
   task::stream<float, 8> fifo_11_01("PE11->PE01");
 
-  task::task()
+  task::parallel()
       .invoke(Scatter, a_vec, a_00, a_01, a_10, a_11)
       .invoke(Scatter, b_vec, b_00, b_01, b_10, b_11)
       .invoke(ProcElem, a_00, b_00, c_00, fifo_00_10, fifo_10_00, fifo_00_01,

@@ -40,8 +40,8 @@ int main(int argc, char *argv[]) {
 
   const auto start = high_resolution_clock::now();
 
-  task::invoke(Network, task::read_only_mmap<pkt_t>(input).vectorized<kN>(),
-               task::write_only_mmap<pkt_t>(output).vectorized<kN>(), n / kN);
+  Network(task::read_only_mmap<pkt_t>(input).vectorized<kN>(),
+          task::write_only_mmap<pkt_t>(output).vectorized<kN>(), n / kN);
 
   const auto stop = high_resolution_clock::now();
 

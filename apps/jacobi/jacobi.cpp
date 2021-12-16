@@ -203,58 +203,57 @@ void Jacobi(task::mmap<float> bank_0_t0, task::mmap<const float> bank_0_t1,
   task::stream<float, 2> from_t0_pe_1_to_super_sink(
       "from_t0_pe_1_to_super_sink");
 
-  task::task()
-      .invoke(Mmap2Stream, "Mmap2Stream", bank_0_t1, coalesced_data_num,
-              bank_0_t1_buf)
-      .invoke(Module0Func, "Module0Func",
+  task::parallel()
+      .invoke(Mmap2Stream, bank_0_t1, coalesced_data_num, bank_0_t1_buf)
+      .invoke(Module0Func,
               /*output*/ from_super_source_to_t1_offset_0,
               /*output*/ from_super_source_to_t1_offset_1,
               /* input*/ bank_0_t1_buf)
-      .invoke(Module1Func, "Module1Func#1",
+      .invoke(Module1Func,
               /*output*/ from_t1_offset_0_to_t1_offset_2000,
               /*output*/ from_t1_offset_0_to_tcse_var_0_pe_1,
               /* input*/ from_super_source_to_t1_offset_0)
-      .invoke(Module1Func, "Module1Func#2",
+      .invoke(Module1Func,
               /*output*/ from_t1_offset_1_to_t1_offset_2001,
               /*output*/ from_t1_offset_1_to_tcse_var_0_pe_0,
               /* input*/ from_super_source_to_t1_offset_1)
-      .invoke(Module1Func, "Module2Func#1",
+      .invoke(Module1Func,
               /*output*/ from_t1_offset_2000_to_tcse_var_0_pe_0,
               /*output*/ from_t1_offset_2000_to_t0_pe_1,
               /* input*/ from_t1_offset_0_to_t1_offset_2000)
-      .invoke(Module1Func, "Module2Func#2",
+      .invoke(Module1Func,
               /*output*/ from_t1_offset_2001_to_tcse_var_0_pe_1,
               /*output*/ from_t1_offset_2001_to_t0_pe_0,
               /* input*/ from_t1_offset_1_to_t1_offset_2001)
-      .invoke(Module3Func1, "Module3Func#1",
+      .invoke(Module3Func1,
               /*output*/ from_tcse_var_0_pe_1_to_tcse_var_0_offset_0,
               /* input*/ from_t1_offset_2001_to_tcse_var_0_pe_1,
               /* input*/ from_t1_offset_0_to_tcse_var_0_pe_1)
-      .invoke(Module3Func2, "Module3Func#2",
+      .invoke(Module3Func2,
               /*output*/ from_tcse_var_0_pe_0_to_tcse_var_0_offset_1,
               /* input*/ from_t1_offset_2000_to_tcse_var_0_pe_0,
               /* input*/ from_t1_offset_1_to_tcse_var_0_pe_0)
-      .invoke(Module1Func, "Module1Func#3",
+      .invoke(Module1Func,
               /*output*/ from_tcse_var_0_offset_0_to_t0_pe_0,
               /*output*/ from_tcse_var_0_offset_0_to_t0_pe_1,
               /* input*/ from_tcse_var_0_pe_1_to_tcse_var_0_offset_0)
-      .invoke(Module1Func, "Module1Func#4",
+      .invoke(Module1Func,
               /*output*/ from_tcse_var_0_offset_1_to_t0_pe_1,
               /*output*/ from_tcse_var_0_offset_1_to_t0_pe_0,
               /* input*/ from_tcse_var_0_pe_0_to_tcse_var_0_offset_1)
-      .invoke(Module6Func1, "Module6Func#1",
+      .invoke(Module6Func1,
               /*output*/ from_t0_pe_0_to_super_sink,
               /* input*/ from_tcse_var_0_offset_0_to_t0_pe_0,
               /* input*/ from_tcse_var_0_offset_1_to_t0_pe_0,
               /* input*/ from_t1_offset_2001_to_t0_pe_0)
-      .invoke(Module6Func2, "Module6Func#2",
+      .invoke(Module6Func2,
               /*output*/ from_t0_pe_1_to_super_sink,
               /* input*/ from_tcse_var_0_offset_1_to_t0_pe_1,
               /* input*/ from_tcse_var_0_offset_0_to_t0_pe_1,
               /* input*/ from_t1_offset_2000_to_t0_pe_1)
-      .invoke(Module8Func, "Module8Func",
+      .invoke(Module8Func,
               /*output*/ bank_0_t0_buf,
               /* input*/ from_t0_pe_0_to_super_sink,
               /* input*/ from_t0_pe_1_to_super_sink)
-      .invoke(Stream2Mmap, "Stream2Mmap", bank_0_t0_buf, bank_0_t0);
+      .invoke(Stream2Mmap, bank_0_t0_buf, bank_0_t0);
 }

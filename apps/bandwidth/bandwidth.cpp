@@ -70,5 +70,5 @@ void Copy(task::async_mmap<Elem> mem, uint64_t n, uint64_t flags) {
 }
 
 void Bandwidth(task::mmaps<Elem, kBankCount> chan, uint64_t n, uint64_t flags) {
-  task::task().invoke<task::join, kBankCount>(Copy, chan, n, flags);
+  task::parallel().invoke<kBankCount>(Copy, chan, n, flags);
 }

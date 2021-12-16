@@ -57,9 +57,9 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  task::task().invoke(Cannon, task::read_only_mmap<const float>(a_buf),
-                      task::read_only_mmap<const float>(b_buf),
-                      task::write_only_mmap<float>(c_buf), n);
+  Cannon(task::read_only_mmap<const float>(a_buf),
+         task::read_only_mmap<const float>(b_buf),
+         task::write_only_mmap<float>(c_buf), n);
 
   for (uint64_t i = 0; i < p; ++i) {
     for (uint64_t j = 0; j < p; ++j) {

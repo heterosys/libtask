@@ -6,15 +6,13 @@
 
 #include "bandwidth.h"
 
-template <typename T> using vector = std::vector<T, task::aligned_allocator<T>>;
-
 void Bandwidth(task::mmaps<Elem, kBankCount> chan, uint64_t n, uint64_t flags);
 
 int main(int argc, char *argv[]) {
   const uint64_t n = argc > 1 ? atoll(argv[1]) : 1024 * 1024;
   const uint64_t flags = argc > 2 ? atoll(argv[2]) : 6LL;
 
-  vector<float> chan[kBankCount];
+  std::vector<float> chan[kBankCount];
   for (int64_t i = 0; i < kBankCount; ++i) {
     chan[i].resize(n * Elem::length);
     for (int64_t j = 0; j < n * Elem::length; ++j) {
@@ -22,10 +20,9 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  task::invoke(Bandwidth,
-               task::read_write_mmaps<float, kBankCount>(chan)
-                   .vectorized<Elem::length>(),
-               n, flags);
+  Bandwidth(task::read_write_mmaps<float, kBankCount>(chan)
+                .vectorized<Elem::length>(),
+            n, flags);
 
   if (!((flags & kRead) && (flags & kWrite)))
     return 0;

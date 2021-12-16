@@ -29,7 +29,7 @@ void VecAdd(task::mmap<const float> a, task::mmap<const float> b,
   task::stream<float, 2> b_q("b");
   task::stream<float, 2> c_q("c");
 
-  task::task()
+  task::parallel()
       .invoke(Mmap2Stream, a, n, a_q)
       .invoke(Mmap2Stream, b, n, b_q)
       .invoke(Add, a_q, b_q, c_q, n)

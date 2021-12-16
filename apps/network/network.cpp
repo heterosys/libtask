@@ -58,11 +58,11 @@ void Switch2x2(int b, istream<pkt_t> &pkt_in_q0, istream<pkt_t> &pkt_in_q1,
 
 void InnerStage(int b, istreams<pkt_t, kN / 2> &in_q0,
                 istreams<pkt_t, kN / 2> &in_q1, ostreams<pkt_t, kN> out_q) {
-  task::task().invoke<detach, kN / 2>(Switch2x2, b, in_q0, in_q1, out_q);
+  task::parallel().invoke<kN / 2, detach>(Switch2x2, b, in_q0, in_q1, out_q);
 }
 
 void Stage(int b, istreams<pkt_t, kN> &in_q, ostreams<pkt_t, kN> out_q) {
-  task::task().invoke<detach>(InnerStage, b, in_q, in_q, out_q);
+  task::parallel().invoke<1, detach>(InnerStage, b, in_q, in_q, out_q);
 }
 
 void Produce(mmap<vec_t<pkt_t, kN>> mmap_in, uint64_t n,
@@ -94,7 +94,7 @@ void Network(mmap<vec_t<pkt_t, kN>> mmap_in, mmap<vec_t<pkt_t, kN>> mmap_out,
   streams<pkt_t, kN, 4096> q2("q2");
   streams<pkt_t, kN, 4096> q3("q3");
 
-  task::task()
+  task::parallel()
       .invoke(Produce, mmap_in, n, q0)
       .invoke(Stage, 2, q0, q1)
       .invoke(Stage, 1, q1, q2)

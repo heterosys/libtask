@@ -26,7 +26,7 @@ void Add(uint64_t n_int, task::istream<float> &a_int,
 
 void Compute(uint64_t n_ext, task::istream<float> &a_ext,
              task::istream<float> &b_ext, task::ostream<float> &c_ext) {
-  task::task().invoke(Add, n_ext, a_ext, b_ext, c_ext);
+  task::parallel().invoke(Add, n_ext, a_ext, b_ext, c_ext);
 }
 
 void Mmap2Stream_internal(task::async_mmap<float> mmap_int, uint64_t n_int,
@@ -48,13 +48,13 @@ void Mmap2Stream_internal(task::async_mmap<float> mmap_int, uint64_t n_int,
 
 void Mmap2Stream(task::mmap<float> mmap_ext, uint64_t n_ext,
                  task::ostream<float> &stream_ext) {
-  task::task().invoke(Mmap2Stream_internal, mmap_ext, n_ext, stream_ext);
+  task::parallel().invoke(Mmap2Stream_internal, mmap_ext, n_ext, stream_ext);
 }
 
 void Load(task::mmap<float> a_array, task::mmap<float> b_array,
           task::ostream<float> &a_stream, task::ostream<float> &b_stream,
           uint64_t n) {
-  task::task()
+  task::parallel()
       .invoke(Mmap2Stream, a_array, n, a_stream)
       .invoke(Mmap2Stream, b_array, n, b_stream);
 }
@@ -71,7 +71,7 @@ void VecAddNested(task::mmap<float> a_array, task::mmap<float> b_array,
   task::stream<float, 8> b_stream("b");
   task::stream<float, 8> c_stream("c");
 
-  task::task()
+  task::parallel()
       .invoke(Load, a_array, b_array, a_stream, b_stream, n)
       .invoke(Compute, n, a_stream, b_stream, c_stream)
       .invoke(Store, c_stream, c_array, n);
