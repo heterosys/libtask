@@ -1,14 +1,10 @@
-#ifndef task_MMAP_H_
-#define task_MMAP_H_
+#ifndef TASK_MMAP_H_
+#define TASK_MMAP_H_
 
 #include <cstddef>
 
-#include <queue>
-#include <stdexcept>
 #include <type_traits>
 #include <vector>
-
-#include "task/coroutine.h"
 
 #include "task/stream.h"
 #include "task/vec.h"
@@ -362,48 +358,6 @@ private:
   }
 };
 
-// Host-only mmap types that must have correct size.
-#define task_DEFINE_MMAP(tag)                                                  \
-  template <typename T> class tag##_mmap : public mmap<T> {                    \
-    tag##_mmap(T *ptr) : mmap<T>(ptr) {}                                       \
-                                                                               \
-  public:                                                                      \
-    using mmap<T>::mmap;                                                       \
-    tag##_mmap(const mmap<T> &base) : mmap<T>(base) {}                         \
-                                                                               \
-    template <uint64_t N> tag##_mmap<vec_t<T, N>> vectorized() const {         \
-      return mmap<T>::template vectorized<N>();                                \
-    }                                                                          \
-    template <typename U> tag##_mmap<U> reinterpret() const {                  \
-      return mmap<T>::template reinterpret<U>();                               \
-    }                                                                          \
-  }
-task_DEFINE_MMAP(placeholder);
-task_DEFINE_MMAP(read_only);
-task_DEFINE_MMAP(write_only);
-task_DEFINE_MMAP(read_write);
-#undef task_DEFINE_MMAP
-#define task_DEFINE_MMAPS(tag)                                                 \
-  template <typename T, uint64_t S> class tag##_mmaps : public mmaps<T, S> {   \
-    tag##_mmaps(const std::array<T *, S> &ptrs) : mmaps<T, S>(ptrs){};         \
-                                                                               \
-  public:                                                                      \
-    using mmaps<T, S>::mmaps;                                                  \
-    tag##_mmaps(const mmaps<T, S> &base) : mmaps<T, S>(base) {}                \
-                                                                               \
-    template <uint64_t N> tag##_mmaps<vec_t<T, N>, S> vectorized() const {     \
-      return mmaps<T, S>::template vectorized<N>();                            \
-    }                                                                          \
-    template <typename U> tag##_mmaps<U, S> reinterpret() const {              \
-      return mmaps<T, S>::template reinterpret<U>();                           \
-    }                                                                          \
-  }
-task_DEFINE_MMAPS(placeholder);
-task_DEFINE_MMAPS(read_only);
-task_DEFINE_MMAPS(write_only);
-task_DEFINE_MMAPS(read_write);
-#undef task_DEFINE_MMAPS
-
 namespace internal {
 
 template <typename T> struct accessor<async_mmap<T>, mmap<T> &> {
@@ -423,21 +377,8 @@ struct accessor<async_mmap<T>, mmaps<T, S> &> {
   }
 };
 
-template <typename T> struct accessor<mmap<T>, mmap<T>> {
-  static_assert(!std::is_same<T, T>::value,
-                "must use one of "
-                "placeholder_mmap/read_only_mmap/write_only_mmap/"
-                "read_write_mmap in task::invoke");
-};
-template <typename T, int64_t S> struct accessor<mmaps<T, S>, mmaps<T, S>> {
-  static_assert(!std::is_same<T, T>::value,
-                "must use one of "
-                "placeholder_mmaps/read_only_mmaps/write_only_mmaps/"
-                "read_write_mmaps in task::invoke");
-};
-
 } // namespace internal
 
 } // namespace task
 
-#endif // task_MMAP_H_
+#endif // TASK_MMAP_H_

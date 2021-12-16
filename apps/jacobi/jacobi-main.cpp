@@ -34,8 +34,8 @@ int main(int argc, char *argv[]) {
   }
 
   auto start = high_resolution_clock::now();
-  Jacobi(task::write_only_mmap<float>(t0_vec),
-         task::read_only_mmap<const float>(t1_vec), height * width / 2);
+  Jacobi(task::mmap<float>(t0_vec), task::mmap<const float>(t1_vec),
+         height * width / 2);
   auto stop = high_resolution_clock::now();
   duration<double> elapsed = stop - start;
   clog << "elapsed time: " << elapsed.count() << " s" << endl;

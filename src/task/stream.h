@@ -16,7 +16,7 @@
 
 #include <glog/logging.h>
 
-#include "task/coroutine.h"
+#include "task/parallel.h"
 
 namespace task {
 

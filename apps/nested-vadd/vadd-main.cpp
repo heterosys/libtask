@@ -24,8 +24,8 @@ int main(int argc, char *argv[]) {
     c[i] = 0.f;
   }
   auto start = high_resolution_clock::now();
-  VecAddNested(task::read_only_mmap<float>(a), task::read_only_mmap<float>(b),
-               task::write_only_mmap<float>(c), n);
+  VecAddNested(task::mmap<float>(a), task::mmap<float>(b), task::mmap<float>(c),
+               n);
   auto stop = high_resolution_clock::now();
   duration<double> elapsed = stop - start;
   clog << "elapsed time: " << elapsed.count() << " s" << endl;

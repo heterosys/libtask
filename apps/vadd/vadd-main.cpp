@@ -24,9 +24,8 @@ int main(int argc, char *argv[]) {
     c[i] = 0.f;
   }
   auto start = high_resolution_clock::now();
-  VecAdd(task::read_only_mmap<const float>(a),
-         task::read_only_mmap<const float>(b), task::write_only_mmap<float>(c),
-         n);
+  VecAdd(task::mmap<const float>(a), task::mmap<const float>(b),
+         task::mmap<float>(c), n);
   auto stop = high_resolution_clock::now();
   duration<double> elapsed = stop - start;
   clog << "elapsed time: " << elapsed.count() << " s" << endl;

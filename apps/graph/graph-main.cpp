@@ -113,11 +113,9 @@ int main(int argc, char *argv[]) {
     VLOG(10) << e.src << " -> " << e.dst;
   }
   VLOG(10) << "updates: " << updates.size();
-  Graph(num_partitions, task::read_only_mmap<const Vid>(num_vertices),
-        task::read_only_mmap<const Eid>(num_edges),
-        task::read_only_mmap<VertexAttr>(vertices),
-        task::read_only_mmap<const Edge>(edges),
-        task::write_only_mmap<Update>(updates));
+  Graph(num_partitions, task::mmap<const Vid>(num_vertices),
+        task::mmap<const Eid>(num_edges), task::mmap<VertexAttr>(vertices),
+        task::mmap<const Edge>(edges), task::mmap<Update>(updates));
   Graph(base_vid, vertices_baseline, edges);
   VLOG(10) << "vertices: ";
   for (auto v : vertices) {

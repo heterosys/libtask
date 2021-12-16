@@ -20,9 +20,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  Bandwidth(task::read_write_mmaps<float, kBankCount>(chan)
-                .vectorized<Elem::length>(),
-            n, flags);
+  Bandwidth(task::mmaps<float, kBankCount>(chan).vectorized<Elem::length>(), n,
+            flags);
 
   if (!((flags & kRead) && (flags & kWrite)))
     return 0;
